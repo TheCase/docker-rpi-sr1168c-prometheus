@@ -1,0 +1,81 @@
+#!/usr/bin/env python
+""" server component to read and publish
+sr1168c hex code from unit to prom format """
+
+import time
+import os
+import sys
+import serial
+import datetime
+import requests
+from flask import Flask
+from flask import jsonify
+
+app = Flask(__name__)  # pylint: disable=invalid-name
+
+def influx(measurement, item, value):
+    """post result to influx"""
+    print "{0} {1}: {2}".format(measurement, item, value)
+    json_body = [
+        {
+            "measurement": measurement,
+            "tags": {
+                "item": item
+            },
+            "fields": {
+                "value": float(value)
+            }
+        }
+    ]
+
+def fetch(ser_port):
+    """ get hex string from rs485 """
+    ser = serial.Serial(ser_port, 4800)
+    ser.write("\x01\x03\x00\x00\x00\x10\x14\x00")
+    raw = ser.read(37)
+    data = {'value': raw[3:37].encode('hex')}
+    return data
+
+def c_to_f(celcius):
+    """Convert Celcius string to Fahrenheit"""
+    fahrenheit = (celcius * 9 / 5) + 32
+    return fahrenheit
+
+@app.route('/metrics')
+def index():
+    """ sr1168 metrics"""
+    serial = os.environ['SERIAL_DEVICE']
+    # test exception
+    if serial == '/dev/test':
+        return text("TEST OK")
+        sys.exit(0)
+    value = fetch(serial)['value']
+
+    data = value.decode('hex')
+
+    items = { 'temperature': {}, 'time': {}, 'power': {}, 'state': {} }
+    items['temperature']['pump_out'] = c_to_f(ord(data[0]) - 10)
+    items['temperature']['array_out'] = c_to_f(ord(data[1]) - 10)
+    items['temperature']['tank_in'] = c_to_f(ord(data[2]))
+    items['temperature']['tank_out'] = c_to_f(ord(data[3]))
+
+    items['time']['pump']        = (256 * ord(data[10]) + ord(data[11]))
+    items['power']['e_kw']       = (256 * ord(data[12]) + ord(data[13]))
+    items['power']['e_accum_kw'] = (256 * ord(data[12]) + ord(data[15]))
+    items['power']['e_accum_mw'] = (256 * ord(data[12]) + ord(data[17]))
+
+    byte = ord(data[20])
+    items['state']['pump'] = byte & 0x01
+
+    out = '#- {:%Y-%m-%d %H:%M:%S}\n'.format(datetime.datetime.now())
+    for item in items:
+        for key,val in items[item].iteritems():
+            out += 'sr1168{{cat="{0}",item="{1}"}} {2}\n'.format(item,key,val)
+    return out 
+
+    # sampleline: 
+    # temperature{item="t0"} 82
+
+if __name__ == "__main__":
+    app.run(debug=True, host='0.0.0.0', port=int(5001))
+

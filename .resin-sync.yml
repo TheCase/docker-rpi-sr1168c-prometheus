@@ -1,0 +1,5 @@
+local_resinos:
+  app-name: sr1168c
+  build-triggers:
+    - Dockerfile: f318977042383f67a9599cb7a9473aee6ad62ee2f006336b24af9c9d709aaec6
+  environment: []
