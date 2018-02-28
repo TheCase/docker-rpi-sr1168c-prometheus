@@ -20,7 +20,7 @@ sudo sh -c "apt-get update && apt-get -y install git"
 Set hostname:
 ```
 sudo hostname sr1168c 
-sudo echo sr1168c > /etc/hostname
+sudo sh -c "echo sr1168c > /etc/hostname"
 ```
 
 ### Clone, build, run
@@ -33,11 +33,8 @@ sudo docker run -d -p 5001:5001 -e "SERIAL_DEVICE=/dev/ttyUSB0" -e "SERVICE_5001
 
 I like to run consul and registrator for the service checks
 ```
-sudo docker run -d --net=host -e 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}' hypriot/rpi-consul agent -node=sr1168c -bind=$(ifconfig wlan0 | grep 'inet addr' | cut -f2 -d: | awk {'print $1'}) -join=consul.service.consul -data-dir=/data
-```
-
-registrator:
-```
-sudo docker run -d --net=host -v /var/run/docker.sock:/tmp/docker.sock:ro hypriot/rpi-registrator consul://localhost:8500
+export ADVERTISE=$(ifconfig wlan0 | grep 'inet addr' | cut -f2 -d: | awk {'print $1'})
+sudo docker run -d --net=host -e 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}' hypriot/rpi-consul agent -node=sr1168c -bind=${ADVERTISE} -join=consul.service.consul -data-dir=/data
+sudo docker run -d --net=host -v /var/run/docker.sock:/tmp/docker.sock:ro hypriot/rpi-registrator -ip=${ADVERTISE} consul://localhost:8500
 ```
 
