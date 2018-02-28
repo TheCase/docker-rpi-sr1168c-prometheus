@@ -1,4 +1,4 @@
-## sr1668c -> prometheus exporter
+## sr1168c -> prometheus exporter
 
 expose metrics from sr1168c solar water heater
 
