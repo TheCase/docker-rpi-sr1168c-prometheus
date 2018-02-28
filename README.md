@@ -37,4 +37,3 @@ export ADVERTISE=$(ifconfig wlan0 | grep 'inet addr' | cut -f2 -d: | awk {'print
 sudo docker run -d --net=host -e 'CONSUL_LOCAL_CONFIG={"leave_on_terminate": true}' hypriot/rpi-consul agent -node=sr1168c -bind=${ADVERTISE} -join=consul.service.consul -data-dir=/data
 sudo docker run -d --net=host -v /var/run/docker.sock:/tmp/docker.sock:ro hypriot/rpi-registrator -ip=${ADVERTISE} consul://localhost:8500
 ```
-
