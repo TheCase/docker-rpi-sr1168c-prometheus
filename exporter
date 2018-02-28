@@ -8,8 +8,7 @@ import sys
 import serial
 import datetime
 import requests
-from flask import Flask
-from flask import jsonify
+from flask import Flask, jsonify, redirect, url_for
 
 app = Flask(__name__)  # pylint: disable=invalid-name
 
@@ -41,10 +40,14 @@ def c_to_f(celcius):
     fahrenheit = (celcius * 9 / 5) + 32
     return fahrenheit
 
-@app.route('/metrics')
+@app.route("/")
 def index():
+    return redirect(url_for('metrics'))
+
+@app.route('/metrics')
+def metrics():
     """ sr1168 metrics"""
-    serial = os.environ['SERIAL_DEVICE']
+    serial = os.environ.get('SERIAL_DEVICE', '/dev/ttyUSB0')
     # test exception
     if serial == '/dev/test':
         return text("TEST OK")
@@ -75,6 +78,10 @@ def index():
 
     # sampleline: 
     # temperature{item="t0"} 82
+
+@app.route('/health')
+def health():
+    return("OK")
 
 if __name__ == "__main__":
     app.run(debug=True, host='0.0.0.0', port=int(5001))
